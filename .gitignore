@@ -1,0 +1,27 @@
+# binaries
+/bin/
+*.exe
+*.test
+*.out
+
+# env
+.env
+.env.local
+.env.*.local
+
+# editors
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# coverage
+coverage.out
+coverage.html
+
+# vendored deps - we use go modules
+vendor/
+
+# local dev artifacts
+tmp/
+*.log
