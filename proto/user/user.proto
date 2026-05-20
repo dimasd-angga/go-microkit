@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package microkit.user.v1;
+
+option go_package = "github.com/dimasd-angga/go-microkit/proto/user;userpb";
+
+service UserService {
+  rpc Register (RegisterRequest) returns (UserResponse);
+  rpc GetByID  (GetByIDRequest)  returns (UserResponse);
+  rpc Login    (LoginRequest)    returns (LoginResponse);
+}
+
+message RegisterRequest {
+  string email    = 1;
+  string name     = 2;
+  string password = 3;
+}
+
+message GetByIDRequest {
+  string id = 1;
+}
+
+message LoginRequest {
+  string email    = 1;
+  string password = 2;
+}
+
+message UserResponse {
+  string id         = 1;
+  string email      = 2;
+  string name       = 3;
+  string role       = 4;
+  string created_at = 5; // RFC3339
+}
+
+message LoginResponse {
+  string access_token       = 1;
+  string refresh_token      = 2;
+  string access_expires_at  = 3;
+  string refresh_expires_at = 4;
+  UserResponse user         = 5;
+}
