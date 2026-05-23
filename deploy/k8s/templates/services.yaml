@@ -1,0 +1,21 @@
+{{- range $svc, $cfg := .Values.services }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $svc }}
+spec:
+  selector:
+    app.kubernetes.io/component: {{ $svc }}
+  ports:
+    {{- if $cfg.grpcPort }}
+    - name: grpc
+      port: {{ $cfg.grpcPort }}
+      targetPort: {{ $cfg.grpcPort }}
+    {{- end }}
+    {{- if $cfg.httpPort }}
+    - name: http
+      port: {{ $cfg.httpPort }}
+      targetPort: {{ $cfg.httpPort }}
+    {{- end }}
+---
+{{- end }}

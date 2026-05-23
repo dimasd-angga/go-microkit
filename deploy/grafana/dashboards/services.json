@@ -1,0 +1,30 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Request rate (gateway)",
+      "datasource": "Prometheus",
+      "targets": [{"expr": "sum(rate(http_requests_total{job=\"gateway\"}[1m]))", "legendFormat": "rps"}],
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 4}
+    },
+    {
+      "type": "stat",
+      "title": "p99 latency (gateway)",
+      "datasource": "Prometheus",
+      "targets": [{"expr": "histogram_quantile(0.99, sum by (le) (rate(http_request_duration_seconds_bucket{job=\"gateway\"}[5m])))"}],
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 4}
+    },
+    {
+      "type": "stat",
+      "title": "Error rate (5xx)",
+      "datasource": "Prometheus",
+      "targets": [{"expr": "sum(rate(http_requests_total{job=\"gateway\",status=~\"5..\"}[5m]))"}],
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 4}
+    }
+  ],
+  "schemaVersion": 38,
+  "title": "go-microkit · services",
+  "version": 1
+}

@@ -1,0 +1,33 @@
+{{- range $svc, $cfg := .Values.services }}
+{{- $ctx := dict "Values" $.Values "Release" $.Release "service" $svc -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $svc }}
+  labels:
+    {{- include "go-microkit.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ $cfg.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: {{ $svc }}
+  template:
+    metadata:
+      labels:
+        {{- include "go-microkit.labels" $ctx | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ $svc }}
+          image: {{ include "go-microkit.image" $ctx }}
+          imagePullPolicy: {{ $.Values.global.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: go-microkit-secrets
+            - configMapRef:
+                name: go-microkit-config
+          {{- with $cfg.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+---
+{{- end }}

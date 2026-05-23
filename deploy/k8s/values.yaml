@@ -1,0 +1,52 @@
+global:
+  image:
+    registry: ghcr.io/dimasd-angga
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  env: production
+
+postgres:
+  externalDSN: ""
+
+jwt:
+  secret: "" # required in prod
+
+services:
+  user:
+    replicas: 2
+    grpcPort: 50051
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits:   {cpu: 500m, memory: 256Mi}
+  order:
+    replicas: 2
+    grpcPort: 50052
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits:   {cpu: 500m, memory: 256Mi}
+  notification:
+    replicas: 1
+    resources:
+      requests: {cpu: 50m,  memory: 64Mi}
+      limits:   {cpu: 200m, memory: 128Mi}
+  gateway:
+    replicas: 2
+    httpPort: 8080
+    resources:
+      requests: {cpu: 100m, memory: 128Mi}
+      limits:   {cpu: 500m, memory: 256Mi}
+
+ingress:
+  enabled: true
+  className: nginx
+  host: api.example.com
+  tls:
+    enabled: true
+    secretName: api-tls
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  cpuTarget: 70

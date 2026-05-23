@@ -1,0 +1,127 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: microkit
+      POSTGRES_PASSWORD: microkit
+      POSTGRES_DB: microkit
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U microkit"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data"]
+    ports: ["4222:4222", "8222:8222"]
+    volumes:
+      - natsdata:/data
+
+  migrate:
+    image: migrate/migrate:v4.17.0
+    profiles: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../services/user/migrations:/m/user
+      - ../services/order/migrations:/m/order
+    entrypoint: ["sh", "-c"]
+    command: >
+      "migrate -path /m/user -database 'postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable' up &&
+       migrate -path /m/order -database 'postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable' up"
+
+  user:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        SERVICE: user
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DSN: postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable
+      REDIS_ADDR: redis:6379
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-only-secret-change-me
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      ENV: development
+    ports: ["50051:50051"]
+
+  order:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        SERVICE: order
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    environment:
+      POSTGRES_DSN: postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable
+      REDIS_ADDR: redis:6379
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-only-secret-change-me
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      ENV: development
+    ports: ["50052:50052"]
+
+  notification:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        SERVICE: notification
+    depends_on:
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    environment:
+      POSTGRES_DSN: postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable
+      REDIS_ADDR: redis:6379
+      NATS_URL: nats://nats:4222
+      JWT_SECRET: dev-only-secret-change-me
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      ENV: development
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      args:
+        SERVICE: gateway
+    depends_on:
+      - user
+      - order
+    environment:
+      USER_SERVICE_GRPC_PORT: 50051
+      ORDER_SERVICE_GRPC_PORT: 50052
+      JWT_SECRET: dev-only-secret-change-me
+      POSTGRES_DSN: postgres://microkit:microkit@postgres:5432/microkit?sslmode=disable
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
+      ENV: development
+    ports: ["8080:8080"]
+
+volumes:
+  pgdata:
+  natsdata:
