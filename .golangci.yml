@@ -1,0 +1,30 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - revive
+    - gofmt
+    - goimports
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        disabled: true # too noisy for kit-scale repo
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters: [errcheck]
+    - path: proto/
+      linters: [staticcheck, revive, unused]

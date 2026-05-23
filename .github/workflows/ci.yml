@@ -1,0 +1,69 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: microkit
+          POSTGRES_PASSWORD: microkit
+          POSTGRES_DB: microkit_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U microkit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DSN: postgres://microkit:microkit@localhost:5432/microkit_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+          cache: true
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test -race -count=1 -short ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.57
+          args: --timeout=5m
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, lint]
+    strategy:
+      matrix:
+        target: [gateway, user, order, notification]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: build ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "gateway" ]; then
+            go build -o /tmp/bin/${{ matrix.target }} ./gateway
+          else
+            go build -o /tmp/bin/${{ matrix.target }} ./services/${{ matrix.target }}
+          fi
