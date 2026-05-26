@@ -11,7 +11,6 @@
 
 # editors
 .idea/
-.vscode/
 *.swp
 .DS_Store
 
@@ -25,3 +24,7 @@ vendor/
 # local dev artifacts
 tmp/
 *.log
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore

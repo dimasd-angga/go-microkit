@@ -158,8 +158,13 @@ func createOrderHandler(d Deps) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p, _ := auth.PrincipalFrom(r.Context())
 		var in createOrderReq
-		if err := httpx.DecodeJSON(r, &in, 0); err != nil {
+		// allow up to 256KiB — orders with hundreds of items are rare but real
+		if err := httpx.DecodeJSON(r, &in, 256*1024); err != nil {
 			httpx.Error(w, apperr.Invalid("bad_json", err.Error()))
+			return
+		}
+		if len(in.Items) > 200 {
+			httpx.Error(w, apperr.Invalid("too_many_items", "max 200 items per order"))
 			return
 		}
 		items := make([]*orderpb.OrderItem, 0, len(in.Items))
